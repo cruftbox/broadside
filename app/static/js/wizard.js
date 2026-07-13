@@ -23,7 +23,24 @@
   async function init() {
     await refresh();
     wireForms();
+    wireInstanceHint();
     handleReauthParam();
+  }
+
+  // The Mastodon "where to get a token" link is per-instance, so build its href
+  // from whatever the user types into the Instance URL field. Falls back to the
+  // generic settings path when the field is empty.
+  function wireInstanceHint() {
+    const form = document.getElementById("mastodon-form");
+    const link = document.getElementById("masto-apps-link");
+    if (!form || !link) return;
+    const update = () => {
+      let base = (form.elements["instance_url"].value || "").trim();
+      if (base && !base.startsWith("http")) base = "https://" + base;
+      link.href = base ? `${base.replace(/\/+$/, "")}/settings/applications` : "#";
+    };
+    form.elements["instance_url"].addEventListener("input", update);
+    update();
   }
 
   // ------------------------------------------------------------------ //

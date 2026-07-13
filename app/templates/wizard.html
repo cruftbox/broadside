@@ -50,6 +50,13 @@
              settings (spec section 4). -->
         <input type="password" name="app_password" placeholder="xxxx-xxxx-xxxx-xxxx" required>
       </label>
+      <!-- Point-of-entry help: where to generate the app password. The direct
+           link is stable; the in-app path is given as a fallback. -->
+      <p class="field-hint">
+        Get one at
+        <a href="https://bsky.app/settings/app-passwords" target="_blank" rel="noopener">bsky.app → Settings → Privacy and Security → App Passwords</a>.
+        Use an app password, not your account password.
+      </p>
       <label>
         Service
         <input type="text" name="service" value="https://bsky.social">
@@ -76,6 +83,13 @@
              Application flow (spec section 4). -->
         <input type="password" name="access_token" placeholder="access token" required>
       </label>
+      <!-- Point-of-entry help. The link target is per-instance, so wizard.js
+           fills its href from the Instance URL field as it is typed. -->
+      <p class="field-hint">
+        On your instance: <strong>Preferences → Development → New application</strong>
+        (<a id="masto-apps-link" href="#" target="_blank" rel="noopener">settings → applications</a>),
+        keep the default scopes, then copy <em>Your access token</em> from the app's page.
+      </p>
       <div class="form-row">
         <button type="submit" class="primary">Verify &amp; save</button>
         <span class="form-status" data-role="status"></span>
