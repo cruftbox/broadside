@@ -74,9 +74,17 @@
     <form id="mastodon-form" class="account-form" autocomplete="off">
       <input type="hidden" name="id" value="">
       <label>
-        Instance URL
+        Instance / server URL
         <input type="text" name="instance_url" placeholder="https://mastodon.social" required>
       </label>
+      <!-- Common confusion: this is the server your account lives on, NOT your
+           profile page or your @handle. It's the part after the @ in your full
+           handle (@you@server -> https://server). -->
+      <p class="field-hint">
+        The server your account is on, e.g. <code>https://mastodon.social</code> —
+        not your profile page. It's the part after the @ in your handle
+        (<code>@you@mastodon.social</code> → <code>https://mastodon.social</code>).
+      </p>
       <label>
         Access token
         <!-- Minted via the instance's Preferences → Development → New

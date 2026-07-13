@@ -173,6 +173,10 @@ button { font: inherit; cursor: pointer; }
 }
 .field-hint { margin: -4px 0 12px; font-size: 13px; color: var(--muted); }
 .field-hint a { color: var(--accent); }
+.field-hint code {
+  font-family: ui-monospace, monospace; font-size: 12px;
+  background: var(--bg); padding: 1px 4px; border-radius: 4px;
+}
 .form-row { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
 .form-status { font-size: 13px; }
 .form-status.ok { color: var(--ok); }
@@ -198,6 +202,11 @@ button { font: inherit; cursor: pointer; }
   display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px;
   overflow-y: auto;
 }
+/* The explicit display:flex above outranks the browser's [hidden]{display:none},
+   so the panel must be told to stay hidden while the attribute is present.
+   Without this the drawer shows on load and the Close button (which only sets
+   the hidden attribute) appears to do nothing. */
+.log-panel[hidden] { display: none; }
 .log-panel-inner { width: 100%; max-width: 640px; }
 .log-header { display: flex; align-items: center; justify-content: space-between; }
 .log-row { padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; font-family: ui-monospace, monospace; }
