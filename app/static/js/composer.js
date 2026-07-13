@@ -171,7 +171,7 @@
   function renderDropZone(entry, index) {
     const zone = document.createElement("div");
     zone.className = "dropzone";
-    zone.innerHTML = `<span>Drop, paste, or <button type="button" class="linkbutton">browse</button> for images</span>`;
+    zone.innerHTML = `<span>Drop images anywhere, paste, or <button type="button" class="linkbutton">browse</button></span>`;
 
     // Hidden file input for the click-to-browse fallback (spec section 10).
     const fileInput = document.createElement("input");
@@ -187,21 +187,10 @@
       fileInput.value = "";
     });
 
-    // Drag and drop is the primary gesture.
-    zone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      zone.classList.add("dragover");
-    });
-    zone.addEventListener("dragleave", () => zone.classList.remove("dragover"));
-    zone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      zone.classList.remove("dragover");
-      handleFiles(index, e.dataTransfer.files);
-    });
-
-    // Paste is expected to be heavily used for screenshots (spec section 10).
-    // The listener is on the textarea's card via a paste handler attached at
-    // the document level in wireControls(), scoped by focused entry.
+    // NOTE: drag-and-drop is handled page-wide at the document level (see
+    // wireDragAndDrop) so an image can be dropped anywhere on the compose page,
+    // not only onto this box. Paste is likewise document-level. The drop is
+    // routed to whichever entry it lands over, so no per-zone handler is needed.
     zone.dataset.entryIndex = String(index);
     return zone;
   }
@@ -609,6 +598,68 @@
       e.preventDefault();
       handleFiles(focusedEntryIndex(), files);
     });
+
+    wireDragAndDrop();
+  }
+
+  // Page-wide drag-and-drop. An image dropped ANYWHERE on the compose page is
+  // accepted (not just onto a drop box) and routed to the entry it lands over,
+  // falling back to the focused/first entry. A full-page highlight shows while
+  // a file is being dragged in.
+  function wireDragAndDrop() {
+    // A single overlay element gives the "drop anywhere" affordance. It is
+    // pointer-events:none so it never becomes the drop target -- that lets us
+    // read the real element under the cursor to pick the right entry.
+    const overlay = document.createElement("div");
+    overlay.className = "drag-overlay";
+    overlay.hidden = true;
+    overlay.innerHTML = "<span>Drop image to add it</span>";
+    document.body.appendChild(overlay);
+
+    // dragenter/dragleave fire per element, so a depth counter tracks whether
+    // the pointer is still somewhere over the window before hiding the overlay.
+    let depth = 0;
+    const isFileDrag = (e) =>
+      e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files");
+
+    document.addEventListener("dragenter", (e) => {
+      if (!isFileDrag(e)) return; // ignore text/selection drags
+      depth += 1;
+      overlay.hidden = false;
+    });
+    document.addEventListener("dragover", (e) => {
+      if (!isFileDrag(e)) return;
+      e.preventDefault(); // required so the drop is allowed
+    });
+    document.addEventListener("dragleave", (e) => {
+      if (!isFileDrag(e)) return;
+      depth -= 1;
+      if (depth <= 0) {
+        depth = 0;
+        overlay.hidden = true;
+      }
+    });
+    document.addEventListener("drop", (e) => {
+      if (!e.dataTransfer) return;
+      const files = Array.from(e.dataTransfer.files || []).filter((f) => f.type.startsWith("image/"));
+      // Always prevent the browser's default "open the dropped image" behavior.
+      e.preventDefault();
+      depth = 0;
+      overlay.hidden = true;
+      if (!files.length) return;
+      handleFiles(entryIndexFromNode(e.target), files);
+    });
+  }
+
+  // Pick the entry a drop landed on. If the drop point is inside an entry card,
+  // use that entry; otherwise fall back to the focused (or first) entry.
+  function entryIndexFromNode(node) {
+    const card = node && node.closest ? node.closest(".entry") : null;
+    if (card) {
+      const idx = Array.from(document.querySelectorAll(".entry")).indexOf(card);
+      if (idx >= 0) return idx;
+    }
+    return focusedEntryIndex();
   }
 
   // Determine which entry currently has focus, so pasted images land there.
