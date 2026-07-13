@@ -5,6 +5,10 @@
 /data/
 *.jsonl
 
+# Server-side deploy state: the GitHub token, the deployed-SHA marker, and the
+# update log. Lives only on the server, never in the repo.
+/.deploy/
+
 # Python
 __pycache__/
 *.py[cod]
