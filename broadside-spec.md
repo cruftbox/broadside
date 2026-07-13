@@ -23,11 +23,12 @@ The author posts text plus one or more images. Alt text is always written. Broad
 - Live-validated setup wizard with per-account re-authentication.
 - Clear per-target success and error reporting.
 - Clickable links on Bluesky via URL link facets (section 9). URLs in the text are auto-detected and made clickable. Mentions and hashtags are not faceted.
+- Bluesky link preview cards (unfurls) for entries that have a link but no image. Because a Bluesky post has a single embed slot, a card is only added when the entry has no image; when an image is present the image takes the slot and there is no card. Mastodon generates its own preview cards server-side, so no work is needed there.
 
 ### Explicitly out of scope
 
 - Video and any non-image attachment type.
-- Link preview cards. No fetched link-card embeds with title/description/thumbnail.
+- Link preview cards on entries that also carry an image (not possible: the image occupies the post's single embed slot).
 - Mention and hashtag facets on Bluesky. Only URL link facets are computed (section 9). `@handle` and `#tag` are posted as plain text and are not resolved or notified on Bluesky. Mastodon resolves both server-side on its own.
 - Scheduling, drafts persistence across restarts, and analytics.
 - Public internet exposure. See section 3.
@@ -234,6 +235,7 @@ For each selected account, post entry 1, capture the identifiers from the respon
 - Image upload: for each image, upload the (already resized) blob via `com.atproto.repo.uploadBlob` and keep the returned blob reference.
 - Post: create the record via `com.atproto.repo.createRecord` in the `app.bsky.feed.post` collection, with the text, `createdAt`, an `app.bsky.embed.images` embed, and computed link facets (below). Each embedded image carries its `alt` text and its blob reference.
 - Link facets: detect URLs in the entry's text and attach a `facets` array so they render as clickable links. Each facet has an `index` with `byteStart` and `byteEnd`, plus a feature of type `app.bsky.richtext.facet#link` carrying the `uri`. **Offsets are UTF-8 byte offsets, not JavaScript string indices and not grapheme counts.** Compute them against the UTF-8 encoding of the text, or any post containing an emoji or accented character before a URL will highlight the wrong span. Only URLs are faceted; `@handle` and `#tag` are left as plain text (section 1). This runs per entry, so each post in a thread carries the facets for its own text.
+- Link card (unfurl): for an entry that has a link but no image, add an `app.bsky.embed.external` embed for the first URL. Fetch the URL's Open Graph metadata server-side (title, description, and `og:image`), downscale the thumbnail under the blob ceiling and upload it as a blob for the card's `thumb`. This shares the single embed slot with images, so it is only built when the entry has no image. It is best-effort: if the fetch or thumbnail fails, the post still goes out with the clickable link and no card. The link facet is applied regardless, so the URL is both clickable and (when imageless) carries a card.
 - Threading: for entry N past the first, set the record's `reply` field with a `root` reference (the first post in this account's chain) and a `parent` reference (the immediately previous post in this account's chain). Both are strong references, each a URI plus a `cid`, taken from the create responses.
 
 ### Mastodon posting
@@ -366,6 +368,7 @@ For quick reference, the settled behaviors:
 
 - Images are the only attachment type. No video and no link preview cards.
 - Bluesky posts get URL link facets so links are clickable; mentions and hashtags are not faceted. Mastodon links auto-resolve server-side.
+- Bluesky link preview cards are added for entries with a link and no image (a post has one embed slot; images take precedence). Best-effort, server-side Open Graph fetch; never blocks the post.
 - Alt text is enforced as a hard block on every image, and capped at 1500 characters. The alt text field auto-opens and focuses when an image lands.
 - Character limit: grapheme-accurate, and the minimum across all selected accounts. 300 when any Bluesky account is selected; the smallest selected Mastodon instance maximum (default 500) when Mastodon-only. Enforced.
 - Instance limits are discovered per Mastodon account at setup and cached. Image size and attachment count also bind to the minimum across all selected accounts.

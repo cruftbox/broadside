@@ -7,3 +7,7 @@
 Flask==3.0.3
 requests==2.32.3
 gunicorn==22.0.0
+# Pillow is used only to downscale link-card thumbnails fetched server-side
+# (linkcard.py) under Bluesky's blob size limit. Post images are resized in the
+# browser; this is the one server-side imaging case (spec allows it as a fallback).
+Pillow==11.0.0

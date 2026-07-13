@@ -164,6 +164,7 @@ def create_record(
     text: str,
     images: list[dict[str, Any]],
     reply: dict[str, Any] | None = None,
+    external: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create one ``app.bsky.feed.post`` record and return ``{uri, cid}``.
 
@@ -175,6 +176,10 @@ def create_record(
     reply : optional ``{"root": <ref>, "parent": <ref>}``
         Present for every entry past the first in a thread; each ref is a
         ``{uri, cid}`` strong reference from an earlier create response.
+    external : optional link-card object ``{uri, title, description, thumb?}``
+        A prepared ``app.bsky.embed.external`` payload. Used only for an entry
+        with a link but no image (a post has a single embed slot, so images take
+        precedence). ``thumb`` is an already-uploaded blob ref when present.
     """
     # createdAt must be an ISO-8601 timestamp with a timezone; Bluesky orders
     # and displays posts by it. UTC "Z" form is what the API expects.
@@ -192,7 +197,8 @@ def create_record(
     if facets:
         record["facets"] = facets
 
-    # Attach the images embed. Each image carries its alt text and blob ref.
+    # Attach an embed. A post has exactly one embed slot: images win when
+    # present; otherwise a link card (external) is used when one was built.
     if images:
         record["embed"] = {
             "$type": "app.bsky.embed.images",
@@ -200,6 +206,8 @@ def create_record(
                 {"alt": img["alt"], "image": img["blob"]} for img in images
             ],
         }
+    elif external:
+        record["embed"] = {"$type": "app.bsky.embed.external", "external": external}
 
     # Threading: link this post to the chain's root and its immediate parent.
     if reply:

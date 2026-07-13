@@ -31,6 +31,9 @@ without alt text on every image.
   the server.
 - **Clickable links on Bluesky.** URLs are auto-detected and made clickable via
   link facets (Bluesky doesn't do this on its own). Mastodon handles links itself.
+- **Link preview cards on Bluesky.** An entry with a link and no image gets a
+  preview card (title, description, thumbnail), fetched server-side. With an
+  image attached there's no card — a Bluesky post has a single embed slot.
 - **Live-validated setup.** Every account is verified against its platform before
   it is saved, so bad credentials are caught at setup, not at post time.
 - **Clear per-target reporting.** Every selected account gets its own status line
@@ -39,8 +42,9 @@ without alt text on every image.
 
 ### Not included (by design)
 
-Video and other non-image attachments, link preview cards, mention/hashtag
-facets, scheduling, drafts, and analytics. See
+Video and other non-image attachments, mention/hashtag facets, scheduling,
+drafts, and analytics. (Bluesky link cards *are* supported for imageless
+posts — see Features.) See
 [`broadside-spec.md`](broadside-spec.md) for the full scope and rationale.
 
 ---

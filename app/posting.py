@@ -30,7 +30,7 @@ import base64
 import time
 from typing import Any, Callable
 
-from . import bluesky, logstore, mastodon
+from . import bluesky, facets, linkcard, logstore, mastodon
 from .config import find_account
 from .errors import ApiError
 
@@ -122,6 +122,40 @@ def _post_bluesky_chain(account: dict[str, Any], entries: list[dict[str, Any]]) 
         session["access"] = s["accessJwt"]
         session["refresh"] = s.get("refreshJwt", session["refresh"])
 
+    def build_link_card(text: str) -> dict[str, Any] | None:
+        """Build an external link card for an imageless entry, or return None.
+
+        Only called when the entry has no images. Fetches Open Graph metadata for
+        the first link in the text and, if there is a thumbnail, uploads it as a
+        blob. Every failure degrades gracefully to None (no card) or a card
+        without a thumb -- a link card must never block the post itself.
+        """
+        url = linkcard.first_url(facets.detect_facets(text))
+        if not url:
+            return None
+        try:
+            card = linkcard.fetch_card(url)
+        except Exception:
+            return None
+        if not card:
+            return None
+        external = {
+            "uri": card["uri"],
+            "title": card.get("title") or url,
+            "description": card.get("description", ""),
+        }
+        if card.get("thumb_bytes"):
+            try:
+                external["thumb"] = _attempt(
+                    lambda: bluesky.upload_blob(
+                        service, session["access"], card["thumb_bytes"], card["thumb_mime"]
+                    ),
+                    on_expired=refresh,
+                )
+            except ApiError:
+                pass  # a card without a thumbnail is still worth sending
+        return external
+
     result = _new_result(account, "bluesky", len(entries))
 
     try:
@@ -152,9 +186,15 @@ def _post_bluesky_chain(account: dict[str, Any], entries: list[dict[str, Any]]) 
             if parent_ref is not None:
                 reply = {"root": root_ref, "parent": parent_ref}
 
+            # A link card is added only when the entry has a link and no image,
+            # since a post has a single embed slot (images take precedence).
+            external = None
+            if not images:
+                external = build_link_card(entry.get("text", ""))
+
             created = _attempt(
-                lambda images=images, reply=reply: bluesky.create_record(
-                    service, session["access"], session["did"], entry.get("text", ""), images, reply
+                lambda images=images, reply=reply, external=external: bluesky.create_record(
+                    service, session["access"], session["did"], entry.get("text", ""), images, reply, external
                 ),
                 on_expired=refresh,
             )
