@@ -1,0 +1,19 @@
+# Broadside -- keep secrets and local cruft out of the public repo.
+
+# The data directory holds config.json (live credentials!) and the post log.
+# This must NEVER be committed. The repo will be public (spec section 2).
+/data/
+*.jsonl
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

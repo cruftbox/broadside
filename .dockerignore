@@ -1,0 +1,13 @@
+# Keep the build context small and never bake local data/secrets into the image.
+/data/
+*.jsonl
+.git/
+.gitignore
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.vscode/
+.idea/
+README.md
+broadside-spec.md

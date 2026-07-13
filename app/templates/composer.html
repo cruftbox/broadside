@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{#
+  composer.html -- The compose-and-post screen (spec section 6).
+
+  The page is intentionally thin: it lays out the fixed regions (account
+  selection, entries container, post controls, results) and composer.js builds
+  and manages everything dynamic inside them. The composer opens with a single
+  entry and no thread affordance in view -- a single post must not look like a
+  thread.
+#}
+{% block title %}Broadside — Compose{% endblock %}
+
+{% block nav %}
+  <a class="navlink" href="{{ url_for('index') }}">Compose</a>
+  <a class="navlink" href="{{ url_for('wizard') }}">Settings</a>
+  <button id="show-log" class="navlink linkbutton" type="button">History</button>
+{% endblock %}
+
+{% block content %}
+<section class="composer">
+  <!-- Account selection: all configured accounts, grouped by platform, each a
+       checkbox, all checked by default (spec section 6). The current selection
+       drives the binding character limit and image constraints. -->
+  <div id="account-selection" class="account-selection card">
+    <h2>Post to</h2>
+    <div id="account-groups"><!-- filled by composer.js --></div>
+  </div>
+
+  <!-- The ordered list of entries. One entry for a single post; more when the
+       author builds a thread. composer.js renders each entry here. -->
+  <div id="entries"><!-- filled by composer.js --></div>
+
+  <!-- The quiet thread control. Appends a new entry and reveals thread
+       structure (spec section 6). -->
+  <div class="thread-controls">
+    <button id="add-entry" class="ghost" type="button">+ Add to thread</button>
+  </div>
+
+  <!-- Post controls. The button label flips between "Post" and "Post Thread"
+       depending on entry count (spec section 6). -->
+  <div class="post-bar">
+    <div id="post-blockers" class="post-blockers"><!-- reasons posting is blocked --></div>
+    <button id="post-button" class="primary" type="button">Post</button>
+  </div>
+
+  <!-- Per-target results. Never collapses to a single success/failure: every
+       selected target gets its own status line (spec section 11). -->
+  <div id="results" class="results" hidden>
+    <h2>Results</h2>
+    <div id="results-list"></div>
+  </div>
+</section>
+
+<!-- The history drawer: a readable view of the server-side post log (spec
+     section 11). Hidden until the History button is pressed. -->
+<div id="log-panel" class="log-panel" hidden>
+  <div class="log-panel-inner card">
+    <div class="log-header">
+      <h2>Post history</h2>
+      <button id="close-log" class="ghost" type="button">Close</button>
+    </div>
+    <div id="log-list"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/composer.js') }}"></script>
+{% endblock %}

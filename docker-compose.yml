@@ -1,0 +1,22 @@
+# Broadside -- compose file for the homelab deployment (spec sections 2 and 3).
+#
+# One service, one named volume for persistent config + post log. The port is
+# bound so the app is reachable on the local network like any other homelab
+# service. It must NEVER be exposed to the public internet (spec section 3);
+# how the LAN is reached is the operator's existing setup, not this file's job.
+
+services:
+  broadside:
+    build: .
+    # Bind to the host LAN port. Change the left-hand number to move the port.
+    ports:
+      - "8080:8080"
+    volumes:
+      # Persistent config.json and post_log.jsonl live here, surviving restarts.
+      - broadside-data:/data
+    environment:
+      - BROADSIDE_DATA_DIR=/data
+    restart: unless-stopped
+
+volumes:
+  broadside-data:

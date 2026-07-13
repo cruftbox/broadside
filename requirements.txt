@@ -1,0 +1,9 @@
+# Broadside runtime dependencies.
+#
+# Deliberately tiny (spec section 2): Flask serves the app and its JSON API,
+# requests makes the outbound Bluesky/Mastodon calls, and gunicorn is the
+# production WSGI server used inside the container. Image processing is
+# client-side (canvas), so there is no server-side imaging dependency.
+Flask==3.0.3
+requests==2.32.3
+gunicorn==22.0.0

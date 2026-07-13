@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{#
+  wizard.html -- Setup wizard and ongoing settings screen (spec section 5).
+
+  The wizard is fully re-runnable: it is both the first-run experience and the
+  place accounts are later added, edited, re-validated, or removed. Its core
+  value is catching bad credentials at setup rather than at post time, so every
+  add/edit validates LIVE before the account is stored.
+
+  As with the composer, wizard.js does the dynamic work; this template lays out
+  the fixed regions.
+#}
+{% block title %}Broadside — Settings{% endblock %}
+
+{% block nav %}
+  <a class="navlink" href="{{ url_for('index') }}">Compose</a>
+  <a class="navlink" href="{{ url_for('wizard') }}">Settings</a>
+{% endblock %}
+
+{% block content %}
+<section class="wizard">
+  <h1>Accounts</h1>
+  <p class="muted">
+    Every account is verified live before it is saved. An account that fails
+    validation is not stored.
+  </p>
+
+  <!-- Existing accounts, with edit / re-validate / remove controls. Populated
+       by wizard.js from the sanitized /api/config (no secrets are ever sent
+       back to the browser). -->
+  <div id="existing-accounts" class="card">
+    <h2>Configured accounts</h2>
+    <div id="account-list"><!-- filled by wizard.js --></div>
+  </div>
+
+  <!-- Add / edit a Bluesky account. -->
+  <div class="card">
+    <h2>Add a Bluesky account</h2>
+    <form id="bluesky-form" class="account-form" autocomplete="off">
+      <!-- Hidden id: empty when adding, set when editing/re-authenticating in
+           place (spec section 5). -->
+      <input type="hidden" name="id" value="">
+      <label>
+        Handle
+        <input type="text" name="handle" placeholder="name.bsky.social" required>
+      </label>
+      <label>
+        App password
+        <!-- An app password, NOT the account password. Generated in Bluesky
+             settings (spec section 4). -->
+        <input type="password" name="app_password" placeholder="xxxx-xxxx-xxxx-xxxx" required>
+      </label>
+      <label>
+        Service
+        <input type="text" name="service" value="https://bsky.social">
+      </label>
+      <div class="form-row">
+        <button type="submit" class="primary">Verify &amp; save</button>
+        <span class="form-status" data-role="status"></span>
+      </div>
+    </form>
+  </div>
+
+  <!-- Add / edit a Mastodon account. -->
+  <div class="card">
+    <h2>Add a Mastodon account</h2>
+    <form id="mastodon-form" class="account-form" autocomplete="off">
+      <input type="hidden" name="id" value="">
+      <label>
+        Instance URL
+        <input type="text" name="instance_url" placeholder="https://mastodon.social" required>
+      </label>
+      <label>
+        Access token
+        <!-- Minted via the instance's Preferences → Development → New
+             Application flow (spec section 4). -->
+        <input type="password" name="access_token" placeholder="access token" required>
+      </label>
+      <div class="form-row">
+        <button type="submit" class="primary">Verify &amp; save</button>
+        <span class="form-status" data-role="status"></span>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/wizard.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,35 @@
+<!--
+  base.html -- Shared page shell for the composer and the wizard.
+
+  Broadside is a small plain-HTML/CSS/JS app (spec section 2): no framework.
+  Child templates fill the `title` and `content` blocks and add their own
+  page-specific script via the `scripts` block.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Broadside{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <!-- The wordmark links home; the settings link reaches the wizard at any
+         time so accounts can be added, edited, or re-validated (spec section 5). -->
+    <a class="brand" href="{{ url_for('index') }}">Broadside</a>
+    <nav class="topnav">
+      {% block nav %}{% endblock %}
+    </nav>
+  </header>
+
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- common.js holds helpers shared by both pages (API calls, grapheme
+       counting, binding-limit math, client-side image resize). -->
+  <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
