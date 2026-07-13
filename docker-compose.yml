@@ -7,7 +7,12 @@
 
 services:
   broadside:
-    build: .
+    build:
+      context: .
+      args:
+        # Source commit baked into the image so the app knows if it is behind
+        # GitHub. update.sh sets BROADSIDE_VERSION; defaults to "unknown".
+        BROADSIDE_VERSION: ${BROADSIDE_VERSION:-unknown}
     # Bind to the host LAN port. The container always serves on 8080 internally;
     # the left-hand number is the host port. 8083 is chosen to avoid the ports
     # already used on the bandersnatch homelab (3000, 8082, 8088, 8090, 8384,
@@ -17,6 +22,10 @@ services:
     volumes:
       # Persistent config.json and post_log.jsonl live here, surviving restarts.
       - broadside-data:/data
+      # Control channel for app-requested updates: the app drops a flag file
+      # here and the host watcher (watch-update.sh) acts on it. A narrow,
+      # specific bind mount -- deliberately NOT the Docker socket.
+      - ./.deploy/control:/control
     environment:
       - BROADSIDE_DATA_DIR=/data
     restart: unless-stopped

@@ -19,11 +19,12 @@ The app factory (``create_app``) builds the Flask instance; a module-level
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 
-from . import bluesky, config, logstore, mastodon, posting
+from . import bluesky, config, logstore, mastodon, posting, updatecheck
 from .errors import ApiError
 
 
@@ -31,6 +32,12 @@ from .errors import ApiError
 # carry several images. 64 MB is comfortably generous for a single-user tool
 # while still rejecting anything absurd outright.
 _MAX_CONTENT_LENGTH = 64 * 1024 * 1024
+
+# Directory bind-mounted from the host where the app drops an update-request
+# flag. A host-side watcher (watch-update.sh, run from cron) notices the flag
+# and runs update.sh -- the container cannot rebuild its own image from inside
+# itself, so the actual rebuild happens on the host.
+_CONTROL_DIR = os.environ.get("BROADSIDE_CONTROL_DIR", "/control")
 
 
 def create_app() -> Flask:
@@ -168,6 +175,33 @@ def create_app() -> Flask:
     def get_log():
         """Return recent post-attempt history, newest first (spec section 11)."""
         return jsonify({"entries": logstore.read_recent()})
+
+    # --- Self-update --------------------------------------------------------
+    @app.route("/api/version")
+    def api_version():
+        """Report the running commit vs the latest on GitHub.
+
+        Drives the composer's "update available" banner. Never errors: an
+        unreachable GitHub simply yields update_available=false.
+        """
+        return jsonify(updatecheck.status())
+
+    @app.route("/api/update", methods=["POST"])
+    def api_update():
+        """Request a rebuild by dropping a flag the host watcher polls.
+
+        The app can't rebuild its own container from inside itself, so it drops
+        a flag file in the bind-mounted control dir; watch-update.sh (host cron)
+        runs update.sh when it sees it. If the control dir isn't mounted (e.g. a
+        dev run), say so plainly rather than pretending it worked.
+        """
+        try:
+            os.makedirs(_CONTROL_DIR, exist_ok=True)
+            with open(os.path.join(_CONTROL_DIR, "update_requested"), "w", encoding="utf-8") as fh:
+                fh.write(updatecheck.latest_version() or "")
+        except OSError as exc:
+            return _error_response(f"Update channel unavailable: {exc}", 500)
+        return jsonify({"ok": True, "queued": True})
 
     return app
 

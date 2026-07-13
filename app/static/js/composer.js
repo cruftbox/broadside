@@ -60,6 +60,39 @@
     renderEntries();
     updateBinding();
     wireControls();
+    checkForUpdate();
+  }
+
+  // Ask the backend whether a newer version is on GitHub; if so, reveal the
+  // update banner and wire its button. Silent on any failure -- an update check
+  // must never get in the way of composing.
+  async function checkForUpdate() {
+    let status;
+    try {
+      status = await api("GET", "/api/version");
+    } catch (_) {
+      return;
+    }
+    if (!status.update_available) return;
+
+    const banner = document.getElementById("update-banner");
+    const msg = document.getElementById("update-msg");
+    const btn = document.getElementById("update-now");
+    banner.hidden = false;
+
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await api("POST", "/api/update");
+        // The host watcher rebuilds within about a minute, which restarts this
+        // container; there's no live "done" signal, so tell the user to reload.
+        msg.textContent = "Update started — Broadside will restart. Reload in about a minute.";
+        btn.remove();
+      } catch (err) {
+        msg.textContent = `Could not start the update: ${err.message}`;
+        btn.disabled = false;
+      }
+    });
   }
 
   // ------------------------------------------------------------------ //

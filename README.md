@@ -123,6 +123,25 @@ GitHub's unauthenticated API rate limit, put a fine-grained token
 > `docker` path and works around a compose config-dir permission quirk). On
 > other hosts set the `DOCKER` environment variable to your `docker` binary.
 
+### Updating from within the app (optional)
+
+The image bakes in the commit it was built from and compares it to GitHub's
+latest. When the deployment is behind, the composer shows an **"Update now"**
+banner. Because a container can't rebuild its own image from inside itself, the
+button just drops a flag file in a bind-mounted control directory
+(`.deploy/control`); a host-side watcher does the rebuild:
+
+```bash
+# Install the watcher on a QNAP host (survives reboots):
+echo '* * * * * /share/CACHEDEV1_DATA/apps/broadside/watch-update.sh' >> /etc/config/crontab
+crontab /etc/config/crontab
+```
+
+`watch-update.sh` runs once a minute, exits immediately unless the flag is
+present, and otherwise runs `update.sh --force`. After clicking Update, the
+container rebuilds within about a minute and you reload the page. To disable
+in-app updates, remove that crontab line — `./update.sh` over SSH still works.
+
 ---
 
 ## Setup: getting credentials
@@ -182,9 +201,11 @@ app/
   mastodon.py  Mastodon client: verify, instance limits, async media, statuses
   posting.py   serial fan-out across accounts with the one-retry policy
   logstore.py  append-only per-attempt history
+  updatecheck.py  compare the running commit to GitHub's latest
   templates/   composer + wizard pages
   static/      css and the composer/wizard/common JavaScript
-update.sh      pull the latest from GitHub and rebuild (run on the server)
+update.sh        pull the latest from GitHub and rebuild (run on the server)
+watch-update.sh  host cron watcher that performs in-app update requests
 ```
 
 **Posting model.** A post is an ordered list of entries (text + images with alt

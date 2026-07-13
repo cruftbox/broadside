@@ -18,6 +18,14 @@
 
 {% block content %}
 <section class="composer">
+  <!-- Update banner: shown only when the running image is behind the latest on
+       GitHub. "Update now" asks the host-side watcher to rebuild (see
+       composer.js / /api/update). Hidden by default. -->
+  <div id="update-banner" class="update-banner" hidden>
+    <span id="update-msg">A new version of Broadside is available.</span>
+    <button id="update-now" class="ghost" type="button">Update now</button>
+  </div>
+
   <!-- Account selection: all configured accounts, grouped by platform, each a
        checkbox, all checked by default (spec section 6). The current selection
        drives the binding character limit and image constraints. -->

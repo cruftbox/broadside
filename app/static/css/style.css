@@ -168,6 +168,16 @@ button { font: inherit; cursor: pointer; }
 /* --- Results --------------------------------------------------------- */
 .results { margin-top: 20px; }
 .open-all { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+
+/* Update-available banner. [hidden] must beat the flex display (same lesson as
+   the log panel: an explicit display outranks the [hidden] UA rule). */
+.update-banner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; margin-bottom: 16px; border-radius: var(--radius);
+  background: var(--warn-bg); color: var(--warn); border: 1px solid #f0e2b8;
+}
+.update-banner[hidden] { display: none; }
+.update-banner span { flex: 1; }
 .result {
   padding: 10px 12px; border-radius: 8px; margin-bottom: 8px;
   border: 1px solid var(--line);
