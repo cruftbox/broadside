@@ -32,7 +32,9 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') update requested via app; running update.sh -
 
 # --force because the user explicitly asked to update; rebuild even if the SHA
 # comparison is momentarily equal. update.sh writes its own detailed log.
-if "$APP_DIR/update.sh" --force >> "$LOG" 2>&1; then
+# Invoked via `sh` so it works regardless of update.sh's executable bit (which
+# a git checkout on some filesystems may not preserve).
+if sh "$APP_DIR/update.sh" --force >> "$LOG" 2>&1; then
   echo "$(date '+%Y-%m-%d %H:%M:%S') update complete" >> "$LOG"
 else
   echo "$(date '+%Y-%m-%d %H:%M:%S') update FAILED (see update log)" >> "$LOG"

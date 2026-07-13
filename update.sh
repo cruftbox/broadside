@@ -84,9 +84,11 @@ gh_curl() {
 # Latest commit on the tracked branch. Parse the first "sha" from the commit
 # object without depending on jq (which QNAP may not have).
 latest_sha() {
-  gh_curl "$API/commits/$BRANCH" \
-    | grep -m1 '"sha"' \
-    | sed -E 's/.*"sha" *: *"([0-9a-f]+)".*/\1/'
+  # Capture the whole response first, then parse. Piping straight into
+  # `grep -m1` makes grep close the pipe early, which prints a spurious
+  # "curl: (23) Failure writing output" to stderr.
+  resp="$(gh_curl "$API/commits/$BRANCH")" || return 1
+  printf '%s\n' "$resp" | grep -m1 '"sha"' | sed -E 's/.*"sha" *: *"([0-9a-f]+)".*/\1/'
 }
 
 LATEST="$(latest_sha)" || die "could not reach GitHub (check network; a private fork needs a token)"
