@@ -59,7 +59,9 @@ die() { log "ERROR: $*"; exit 1; }
 # --- Token ------------------------------------------------------------------
 TOKEN="${GITHUB_TOKEN:-}"
 if [ -z "$TOKEN" ] && [ -f "$TOKEN_FILE" ]; then
-  TOKEN="$(cat "$TOKEN_FILE")"
+  # Strip whitespace/newlines so a token pasted into the file (which usually
+  # gains a trailing newline) still forms a valid Authorization header.
+  TOKEN="$(tr -d ' \t\r\n' < "$TOKEN_FILE")"
 fi
 [ -n "$TOKEN" ] || die "no GitHub token (set GITHUB_TOKEN or create $TOKEN_FILE)"
 
