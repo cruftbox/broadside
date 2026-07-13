@@ -51,11 +51,15 @@ posts — see Features.) See
 
 ## Requirements
 
-- Docker (recommended), or Python 3.12+ for local development.
+- Docker (recommended), or Python 3.12 / 3.13 for local development. (The
+  container image uses Python 3.12. Pillow — a dependency — has no prebuilt
+  wheel for Python 3.14 yet, so 3.14 will try to build it from source.)
 - A Bluesky **app password** for each Bluesky account
   (Settings → Privacy and Security → App Passwords — **not** your account password).
 - A Mastodon **access token** for each Mastodon account
-  (Preferences → Development → New Application; the `write` scopes are sufficient).
+  (Preferences → Development → New Application; the default `read` + `write`
+  scopes are sufficient — `read` verifies the account and reads instance limits,
+  `write` posts).
 
 ---
 
@@ -95,6 +99,29 @@ python -m app.server
 
 The dev server binds to `0.0.0.0:8083` here (default is 8080; override with
 `BROADSIDE_PORT`). Open `http://localhost:8083`.
+
+---
+
+## Updating a server deployment
+
+[`update.sh`](update.sh) updates an existing server deployment in place: it
+fetches the latest code from GitHub as a tarball (no `git` needed — handy on a
+NAS), syncs it into the app directory **without touching `data/`**, and rebuilds
+the container with `docker compose`. Run it from the app directory on the server:
+
+```bash
+./update.sh            # update only if GitHub is ahead of what's deployed
+./update.sh --force    # rebuild from the latest commit regardless
+./update.sh --check    # report status only (exit 10 if an update is available)
+```
+
+For this public repo no token is needed. For a private fork, or to raise
+GitHub's unauthenticated API rate limit, put a fine-grained token
+(Contents: Read) in `.deploy/github_token` or set `GITHUB_TOKEN`.
+
+> Note: `update.sh` targets a QNAP Container Station host (it falls back to that
+> `docker` path and works around a compose config-dir permission quirk). On
+> other hosts set the `DOCKER` environment variable to your `docker` binary.
 
 ---
 
@@ -150,12 +177,14 @@ app/
   config.py    load/save JSON config; the one place credentials are read
   errors.py    shared error taxonomy: rejected vs unreachable, auth, ratelimit…
   facets.py    Bluesky URL link facets (UTF-8 byte offsets)
+  linkcard.py  Bluesky link-card metadata fetch (Open Graph) + thumbnail
   bluesky.py   AT Protocol client: sessions, blob upload, records, threading
   mastodon.py  Mastodon client: verify, instance limits, async media, statuses
   posting.py   serial fan-out across accounts with the one-retry policy
   logstore.py  append-only per-attempt history
   templates/   composer + wizard pages
   static/      css and the composer/wizard/common JavaScript
+update.sh      pull the latest from GitHub and rebuild (run on the server)
 ```
 
 **Posting model.** A post is an ordered list of entries (text + images with alt

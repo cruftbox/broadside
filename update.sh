@@ -17,10 +17,12 @@
 #                            0 = up to date, 10 = update available, 1 = error.
 #
 # AUTH
-#   Reads a GitHub token from (in order): the GITHUB_TOKEN env var, or the file
-#   $APP_DIR/.deploy/github_token. Use a fine-grained personal access token
-#   with Contents: Read on the broadside repo, and nothing else. Store it
-#   chmod 600. The token never leaves the server.
+#   The broadside repo is public, so a token is OPTIONAL -- the script works
+#   unauthenticated. Provide one only for a private fork, or to raise GitHub's
+#   unauthenticated API rate limit (60 requests/hour). It is read from (in
+#   order): the GITHUB_TOKEN env var, or the file $APP_DIR/.deploy/github_token
+#   (a fine-grained PAT with Contents: Read, chmod 600). The token never leaves
+#   the server.
 #
 # CONFIG (override via environment)
 #   BROADSIDE_REPO      GitHub owner/repo         (default cruftbox/broadside)
@@ -57,28 +59,37 @@ log() { printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" | tee -a "$LOG_FILE
 die() { log "ERROR: $*"; exit 1; }
 
 # --- Token ------------------------------------------------------------------
+# Token is optional (the repo is public). When present it is used for a private
+# fork or a higher rate limit. Strip whitespace/newlines so a token pasted into
+# the file (which usually gains a trailing newline) still forms a valid header.
 TOKEN="${GITHUB_TOKEN:-}"
 if [ -z "$TOKEN" ] && [ -f "$TOKEN_FILE" ]; then
-  # Strip whitespace/newlines so a token pasted into the file (which usually
-  # gains a trailing newline) still forms a valid Authorization header.
   TOKEN="$(tr -d ' \t\r\n' < "$TOKEN_FILE")"
 fi
-[ -n "$TOKEN" ] || die "no GitHub token (set GITHUB_TOKEN or create $TOKEN_FILE)"
 
 API="https://api.github.com/repos/$REPO"
-AUTH="Authorization: Bearer $TOKEN"
 ACCEPT="Accept: application/vnd.github+json"
+
+# curl wrapper that adds the Authorization header only when a token is set, so
+# the same calls work authenticated (private fork) or anonymous (public repo).
+gh_curl() {
+  if [ -n "$TOKEN" ]; then
+    curl -fsSL -H "Authorization: Bearer $TOKEN" -H "$ACCEPT" "$@"
+  else
+    curl -fsSL -H "$ACCEPT" "$@"
+  fi
+}
 
 # --- Determine latest and current SHAs -------------------------------------
 # Latest commit on the tracked branch. Parse the first "sha" from the commit
 # object without depending on jq (which QNAP may not have).
 latest_sha() {
-  curl -fsSL -H "$AUTH" -H "$ACCEPT" "$API/commits/$BRANCH" \
+  gh_curl "$API/commits/$BRANCH" \
     | grep -m1 '"sha"' \
     | sed -E 's/.*"sha" *: *"([0-9a-f]+)".*/\1/'
 }
 
-LATEST="$(latest_sha)" || die "could not reach GitHub (check token / network)"
+LATEST="$(latest_sha)" || die "could not reach GitHub (check network; a private fork needs a token)"
 [ -n "$LATEST" ] || die "could not parse latest commit SHA from GitHub"
 CURRENT="$(cat "$STATE_FILE" 2>/dev/null || echo '')"
 
@@ -111,7 +122,7 @@ log "updating $REPO@$BRANCH: $(short "${CURRENT:-none}") -> $(short "$LATEST")"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-curl -fsSL -H "$AUTH" "$API/tarball/$BRANCH" -o "$TMP/src.tgz" \
+gh_curl "$API/tarball/$BRANCH" -o "$TMP/src.tgz" \
   || die "tarball download failed"
 mkdir -p "$TMP/src"
 tar xzf "$TMP/src.tgz" -C "$TMP/src" || die "tarball extract failed"
