@@ -167,6 +167,7 @@ button { font: inherit; cursor: pointer; }
 
 /* --- Results --------------------------------------------------------- */
 .results { margin-top: 20px; }
+.open-all { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .result {
   padding: 10px 12px; border-radius: 8px; margin-bottom: 8px;
   border: 1px solid var(--line);

@@ -472,10 +472,45 @@
       return;
     }
 
+    // One-click "open all": each successful target contributes its primary post
+    // link (the chain root for a thread, which shows the whole thread on the
+    // platform). Shown only when more than one target has a link -- for a single
+    // target the per-result "view" link already suffices.
+    const openUrls = results
+      .filter((r) => r.posts && r.posts.length)
+      .map((r) => r.posts[0].url)
+      .filter(Boolean);
+    if (openUrls.length > 1) {
+      list.appendChild(renderOpenAll(openUrls));
+    }
+
     for (const r of results) {
       list.appendChild(renderOneResult(r));
     }
     panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // Build the "Open all N posts" control. Each URL opens in its own tab. Note
+  // that browsers may treat rapid multiple window.open calls as pop-ups; the
+  // hint tells the user to allow them if some are blocked.
+  function renderOpenAll(urls) {
+    const wrap = document.createElement("div");
+    wrap.className = "open-all";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ghost";
+    btn.textContent = `Open all ${urls.length} posts ↗`;
+    btn.addEventListener("click", () => {
+      urls.forEach((u) => window.open(u, "_blank", "noopener"));
+    });
+    wrap.appendChild(btn);
+
+    const note = document.createElement("span");
+    note.className = "muted small";
+    note.textContent = " allow pop-ups if some don't open";
+    wrap.appendChild(note);
+    return wrap;
   }
 
   function renderOneResult(r) {
