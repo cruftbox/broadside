@@ -63,7 +63,7 @@ cd broadside
 docker compose up -d --build
 ```
 
-Then open `http://<host>:8080` on your local network. On first run you'll be
+Then open `http://<host>:8083` on your local network. On first run you'll be
 routed to the setup wizard. Add at least one account, verify it, and you're ready
 to compose.
 
@@ -83,12 +83,14 @@ python -m venv .venv
 # Unix:     source .venv/bin/activate
 pip install -r requirements.txt
 
-# Store config/log under ./data instead of /data:
+# Store config/log under ./data instead of /data, and pick the host port:
 export BROADSIDE_DATA_DIR=./data        # PowerShell: $env:BROADSIDE_DATA_DIR="./data"
+export BROADSIDE_PORT=8083              # PowerShell: $env:BROADSIDE_PORT="8083"
 python -m app.server
 ```
 
-The dev server binds to `0.0.0.0:8080` (override with `BROADSIDE_PORT`).
+The dev server binds to `0.0.0.0:8083` here (default is 8080; override with
+`BROADSIDE_PORT`). Open `http://localhost:8083`.
 
 ---
 

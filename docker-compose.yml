@@ -8,9 +8,12 @@
 services:
   broadside:
     build: .
-    # Bind to the host LAN port. Change the left-hand number to move the port.
+    # Bind to the host LAN port. The container always serves on 8080 internally;
+    # the left-hand number is the host port. 8083 is chosen to avoid the ports
+    # already used on the bandersnatch homelab (3000, 8082, 8088, 8090, 8384,
+    # 9000, syncthing's). Change the left-hand number to move the host port.
     ports:
-      - "8080:8080"
+      - "8083:8080"
     volumes:
       # Persistent config.json and post_log.jsonl live here, surviving restarts.
       - broadside-data:/data
