@@ -22,10 +22,6 @@ services:
     volumes:
       # Persistent config.json and post_log.jsonl live here, surviving restarts.
       - broadside-data:/data
-      # Control channel for app-requested updates: the app drops a flag file
-      # here and the host watcher (watch-update.sh) acts on it. A narrow,
-      # specific bind mount -- deliberately NOT the Docker socket.
-      - ./.deploy/control:/control
     environment:
       - BROADSIDE_DATA_DIR=/data
     restart: unless-stopped

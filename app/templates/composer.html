@@ -19,11 +19,11 @@
 {% block content %}
 <section class="composer">
   <!-- Update banner: shown only when the running image is behind the latest on
-       GitHub. "Update now" asks the host-side watcher to rebuild (see
-       composer.js / /api/update). Hidden by default. -->
+       GitHub. Broadside does not update itself; this just tells the operator to
+       run update.sh on the server. Hidden by default. -->
   <div id="update-banner" class="update-banner" hidden>
-    <span id="update-msg">A new version of Broadside is available.</span>
-    <button id="update-now" class="ghost" type="button">Update now</button>
+    <span>A new version of Broadside is available. On the server, run
+      <code>./update.sh</code> in the app directory to update.</span>
   </div>
 
   <!-- Account selection: all configured accounts, grouped by platform, each a

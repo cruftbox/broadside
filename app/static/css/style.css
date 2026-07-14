@@ -178,6 +178,10 @@ button { font: inherit; cursor: pointer; }
 }
 .update-banner[hidden] { display: none; }
 .update-banner span { flex: 1; }
+.update-banner code {
+  font-family: ui-monospace, monospace; font-size: 13px;
+  background: rgba(0,0,0,.06); padding: 1px 5px; border-radius: 4px;
+}
 .result {
   padding: 10px 12px; border-radius: 8px; margin-bottom: 8px;
   border: 1px solid var(--line);

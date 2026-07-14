@@ -148,13 +148,6 @@ else
 fi
 
 # --- Rebuild ----------------------------------------------------------------
-# Ensure the bind-mounted control dir exists and is writable by the container
-# user (uid 10001) before compose starts, or docker would create it root-owned
-# and the app couldn't drop its update-request flag. 0777 keeps it simple: the
-# container writes, the host watcher (root) reads and deletes.
-mkdir -p "$DEPLOY_DIR/control"
-chmod 777 "$DEPLOY_DIR/control" 2>/dev/null || true
-
 # HOME/DOCKER_CONFIG are redirected into the app dir because QNAP's docker
 # compose otherwise tries to create a per-user config dir the service user
 # cannot write (mkdir .../container-station/homes/<user>: permission denied).
