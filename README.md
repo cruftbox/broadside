@@ -46,9 +46,12 @@ without alt text on every image.
 
 ### Not included (by design)
 
-Video and other non-image attachments, mention/hashtag facets, scheduling,
-drafts, and analytics. (Bluesky link cards *are* supported for imageless
-posts — see Features.) See
+**Other platforms** — this is a Bluesky + Mastodon tool only. It does not post
+to Twitter/X, Threads, or any other network, and there are no plans to add them.
+
+Also not included: video and other non-image attachments, mention/hashtag
+facets, scheduling, drafts, and analytics. (Bluesky link cards *are* supported
+for imageless posts — see Features.) See
 [`broadside-spec.md`](broadside-spec.md) for the full scope and rationale.
 
 ---
