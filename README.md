@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/broadside-logo.png" alt="Broadside — a ship firing a broadside at the Bluesky and Mastodon logos" width="480">
+</p>
+
 # Broadside
 
 A self-hosted cross-poster for **Bluesky** and **Mastodon**. Compose once — with
