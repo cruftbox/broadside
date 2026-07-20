@@ -74,6 +74,51 @@ const Broadside = (() => {
   }
 
   /* ------------------------------------------------------------------ *
+   * Bluesky link shortening (spec section 9 addendum)
+   *
+   * Bluesky's own app never posts a link's full typed text: before every
+   * post it rewrites each URL's VISIBLE text to `host + truncated-path +
+   * "..."` (stripping the scheme), while the underlying link still points at
+   * the full URL -- see `toShortUrl`/`shortenLinks` in bluesky-social/
+   * social-app (src/lib/strings/url-helpers.ts, rich-text-manip.ts). It does
+   * this unconditionally, and its OWN live character counter counts the
+   * shortened length. Mirroring that here is what keeps this counter from
+   * blocking a post that bsky.app would post successfully at a shorter
+   * effective length -- the same input, counted the same way upstream counts
+   * it. The server applies the identical rule (facets.py) to what actually
+   * gets posted.
+   * ------------------------------------------------------------------ */
+
+  const _URL_RE = /(^|[\s(])(https?:\/\/[^\s]+|(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?:\/[^\s]*)?)/gi;
+  const _TRAILING = ".,;:!?\"')]}>";
+
+  /** Port of bsky.app's toShortUrl: shorten one URL for display only. */
+  function toShortUrl(url) {
+    try {
+      const u = new URL(url);
+      if (u.protocol !== "http:" && u.protocol !== "https:") return url;
+      const tail = (u.pathname === "/" ? "" : u.pathname) + u.search + u.hash;
+      return tail.length > 15 ? u.host + tail.slice(0, 13) + "..." : u.host + tail;
+    } catch (_) {
+      // Not an absolute http(s) URL (e.g. a bare domain typed with no
+      // scheme) -- left exactly as typed, matching upstream.
+      return url;
+    }
+  }
+
+  /** Replace every URL in `text` with its shortened display form. */
+  function shortenBskyLinks(text) {
+    return text.replace(_URL_RE, (whole, pre, url) => {
+      let urlText = url;
+      while (urlText && _TRAILING.includes(urlText[urlText.length - 1])) {
+        urlText = urlText.slice(0, -1);
+      }
+      if (!urlText) return whole;
+      return pre + toShortUrl(urlText) + url.slice(urlText.length);
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
    * Binding limits: the minimum across all selected accounts (spec section 7)
    * ------------------------------------------------------------------ */
 
@@ -267,5 +312,14 @@ const Broadside = (() => {
       .replace(/'/g, "&#39;");
   }
 
-  return { api, graphemeCount, computeLimits, resizeImage, isAnimatedGif, escapeHtml };
+  return {
+    api,
+    graphemeCount,
+    computeLimits,
+    resizeImage,
+    isAnimatedGif,
+    escapeHtml,
+    toShortUrl,
+    shortenBskyLinks,
+  };
 })();

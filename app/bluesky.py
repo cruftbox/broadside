@@ -20,7 +20,7 @@ from typing import Any
 import requests
 
 from .errors import ApiError
-from .facets import detect_facets
+from .facets import detect_facets, shorten_link_facets
 
 
 # A generous but bounded timeout. Long enough for a slow PDS, short enough that
@@ -185,15 +185,19 @@ def create_record(
     # and displays posts by it. UTC "Z" form is what the API expects.
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
+    # Compute URL link facets so any links in the text are clickable (spec
+    # section 9), then shorten each link's VISIBLE text the way bsky.app's own
+    # composer does before posting (facets.py has the full rationale). This is
+    # the text that actually gets posted -- it is what makes a long-URL post
+    # fit Bluesky's real 300-grapheme limit instead of being needlessly
+    # rejected, and it is why the composer's live counter matches.
+    display_text, facets = shorten_link_facets(text, detect_facets(text))
+
     record: dict[str, Any] = {
         "$type": "app.bsky.feed.post",
-        "text": text,
+        "text": display_text,
         "createdAt": now,
     }
-
-    # Compute URL link facets so any links in the text are clickable (spec
-    # section 9). Empty when the text has no URLs, in which case we omit the key.
-    facets = detect_facets(text)
     if facets:
         record["facets"] = facets
 

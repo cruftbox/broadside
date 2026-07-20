@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from urllib.parse import urlsplit
 
 
 # Match either an explicit http(s) URL or a bare domain (e.g. "example.com/x").
@@ -98,3 +99,83 @@ def detect_facets(text: str) -> list[dict[str, Any]]:
         )
 
     return facets
+
+
+# --- Matching Bluesky's own link-shortening behavior -----------------------
+#
+# Bluesky's official app (web, iOS, Android) never posts a link's full typed
+# text. Before every post, it rewrites each link facet's VISIBLE text to
+# `host + truncated-path + "..."` while leaving the facet's `uri` (the actual
+# link target) untouched -- see `toShortUrl`/`shortenLinks` in
+# bluesky-social/social-app (src/lib/strings/url-helpers.ts and
+# rich-text-manip.ts). It does this unconditionally, not only when a post
+# would otherwise be too long, and its own live character counter counts the
+# SHORTENED length. A post built from the literal typed text (as this app
+# used to do) can therefore look "over 300" here while bsky.app posts the
+# same typed text successfully at a shorter effective length -- the same URL
+# ends up counted differently, not counted incorrectly.
+#
+# The two constants below and the truncation rule in ``to_short_url`` are a
+# direct port of upstream's ``toShortUrl``, so Broadside's posted text and its
+# character counter both match what bsky.app would have done with the same
+# input.
+_SHORTEN_PATH_MAX = 15
+_SHORTEN_PATH_KEEP = 13
+
+
+def to_short_url(url: str) -> str:
+    """Shorten one URL for DISPLAY the way Bluesky's own app does.
+
+    Strips the scheme; if the remaining path+query+fragment is longer than
+    ``_SHORTEN_PATH_MAX`` characters, keeps only the first ``_SHORTEN_PATH_KEEP``
+    followed by an ellipsis. Only applies to ``http``/``https`` URLs -- a bare
+    domain typed without a scheme is returned unchanged, matching upstream's
+    behavior of leaving anything it can't parse as an absolute URL untouched.
+    """
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https"):
+        return url
+    path = parts.path if parts.path != "/" else ""
+    query = f"?{parts.query}" if parts.query else ""
+    fragment = f"#{parts.fragment}" if parts.fragment else ""
+    tail = path + query + fragment
+    if len(tail) > _SHORTEN_PATH_MAX:
+        tail = tail[:_SHORTEN_PATH_KEEP] + "..."
+    return parts.netloc + tail
+
+
+def shorten_link_facets(text: str, facets: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]]]:
+    """Shorten every link facet's visible text in ``text``, Bluesky-app style.
+
+    Returns ``(new_text, new_facets)``. Each link facet's ``index`` is updated
+    to point at the shortened span; its ``uri`` feature -- the real link
+    target -- is left exactly as detected. Facets are processed left to right
+    with a running byte-offset delta so multiple links in one post shift
+    correctly. Non-link facets are returned unchanged (there are none today --
+    only URLs are faceted -- but this stays correct if that ever changes).
+    """
+    link_indices = [
+        i
+        for i, f in enumerate(facets)
+        if any(feat.get("$type") == "app.bsky.richtext.facet#link" for feat in f.get("features", []))
+    ]
+    if not link_indices:
+        return text, facets
+
+    text_bytes = bytearray(text.encode("utf-8"))
+    delta = 0
+    for i in sorted(link_indices, key=lambda i: facets[i]["index"]["byteStart"]):
+        idx = facets[i]["index"]
+        start = idx["byteStart"] + delta
+        end = idx["byteEnd"] + delta
+        old_span = bytes(text_bytes[start:end]).decode("utf-8")
+        short = to_short_url(old_span)
+        if short == old_span:
+            continue
+        short_bytes = short.encode("utf-8")
+        text_bytes[start:end] = short_bytes
+        idx["byteStart"] = start
+        idx["byteEnd"] = start + len(short_bytes)
+        delta += len(short_bytes) - (end - start)
+
+    return text_bytes.decode("utf-8"), facets

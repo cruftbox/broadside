@@ -22,7 +22,7 @@
 
 (() => {
   "use strict";
-  const { api, graphemeCount, computeLimits, resizeImage, escapeHtml } = Broadside;
+  const { api, graphemeCount, computeLimits, resizeImage, escapeHtml, shortenBskyLinks } = Broadside;
 
   // ------------------------------------------------------------------ //
   // State
@@ -119,6 +119,16 @@
 
   function selectedAccounts() {
     return state.accounts.filter((a) => state.selected.has(a.id));
+  }
+
+  // The text length that actually matters for the character count and limit
+  // check. When a Bluesky account is selected, that's the length AFTER
+  // Bluesky's own link-shortening (what bsky.app would actually post and
+  // count) rather than the literal typed text -- see common.js.
+  function countedText(entry) {
+    const text = entry.text || "";
+    const hasBluesky = selectedAccounts().some((a) => a.platform === "bluesky");
+    return hasBluesky ? shortenBskyLinks(text) : text;
   }
 
   // ------------------------------------------------------------------ //
@@ -376,7 +386,7 @@
     const el = card.querySelector('[data-role="counter"]');
     if (!el) return;
     const limits = computeLimits(selectedAccounts());
-    const count = graphemeCount(entry.text || "");
+    const count = graphemeCount(countedText(entry));
     const max = limits.maxChars || 0;
     const over = max > 0 && count > max;
     el.classList.toggle("over", over);
@@ -423,7 +433,7 @@
         }
       }
       // Character limit is enforced before sending (spec section 7).
-      if (limits.maxChars > 0 && graphemeCount(entry.text || "") > limits.maxChars) {
+      if (limits.maxChars > 0 && graphemeCount(countedText(entry)) > limits.maxChars) {
         reasons.push(`Entry ${i + 1} is over the ${limits.maxChars}-character limit.`);
       }
     });
